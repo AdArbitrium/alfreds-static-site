@@ -1,0 +1,10 @@
+version: '3'
+
+tasks:
+  local:
+    cmds:
+      - npm run develop
+  deploy:
+    cmds:
+      - npm run build --no-optional
+      - serverless deploy

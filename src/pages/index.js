@@ -1,9 +1,12 @@
 import * as React from "react";
 import { scrapeStock } from "../client/StockScraperClient";
-import { Button, Jumbotron, Row, Col, Container, Card } from "react-bootstrap";
+import { Button, Jumbotron, Row, Col, Container } from "react-bootstrap";
 import { loadArr, saveArr } from "../client/s3Database";
-import "bootstrap/dist/css/bootstrap.min.css"
+import "bootstrap/dist/css/bootstrap.min.css";
+import StockCard from "../components/StockCard";
+import { connect } from "react-redux";
 
+import { updateCurrentCard, concatCardToCardArray} from "../state/actionCreators";
 
 // styles
 const pageStyles = {
@@ -12,6 +15,20 @@ const pageStyles = {
   fontFamily: "-apple-system, Roboto, sans-serif, serif",
 };
 
+const mapStateToProps = (state) => {
+  const {currentCard, cardArray } = state;
+  return {
+    currentCard,
+    cardArray,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    updateCurrentCard: (val) => dispatch(updateCurrentCard(val)),
+    concatCardToCardArray: (val) => dispatch(concatCardToCardArray(val))
+  };
+};
 
 class IndexPage extends React.Component {
   constructor(props) {
@@ -23,7 +40,6 @@ class IndexPage extends React.Component {
       companyName: "",
       priceChange: "",
       priceClosing: "",
-      cardArr: [],
     };
   }
 
@@ -38,27 +54,15 @@ class IndexPage extends React.Component {
     await this.scrapeStockAndSaveToState();
   };
 
-  scrapeStockAndSaveToState = async(ticker) => {
-    let targetTicker = ticker || this.state.stockName
-    let card;
+  scrapeStockAndSaveToState = async (ticker) => {
+    let targetTicker = ticker || this.state.stockName;
+
     await scrapeStock(targetTicker).then((result) => {
-      card = {
-        ticker: result.ticker,
-        tickerData: result,
-        companyName: result.company_name,
-        priceChange: result.price_change,
-        priceClosing: result.price_closing,
-      };
+      this.props.updateCurrentCard(result);
+      this.props.concatCardToCardArray(this.props.currentCard);
 
-      let newCardArr = this.state.cardArr.concat(card);
-      console.log(newCardArr)
-
-      this.setState({
-        cardArr: newCardArr,
-      });
     });
-  }
-
+  };
 
   renderButtons = () => {
     return this.state.serverArr.map((item, index) => (
@@ -77,54 +81,51 @@ class IndexPage extends React.Component {
 
   renderTickerCards = () => {
     let arr = [];
-    this.state.cardArr.forEach((card, index) => {
+    this.props.cardArray.forEach((card, index) => {
       arr.push(
-        <div key={index}>
-          <Card style={{ width: "18rem" }}>
-            <Card.Body>
-              <Card.Title>{JSON.stringify(card.companyName)}</Card.Title>
-              <Card.Text>
-                {JSON.stringify(card.priceClosing)}
-                {JSON.stringify(card.priceChange)}
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </div>
+        <StockCard
+          key={index}
+          ticker={card.ticker}
+          companyName={card.companyName}
+          priceClosing={card.priceClosing}
+          priceChange={card.priceChange}
+        />
       );
     });
     return arr;
   };
 
-  saveCurrentCardArr = async() => {
-    let justTheTickerArr = this.state.cardArr.map((card) => card.ticker)
-    console.log(justTheTickerArr)
-    await saveArr(justTheTickerArr)
-    let newArr = this.state.serverArr.push(justTheTickerArr)
+  saveCurrentCardArr = async () => {
+    let justTheTickerArr = this.props.cardArray.map((card) => card.ticker);
+    console.log(justTheTickerArr);
+    await saveArr(justTheTickerArr);
+    let newArr = this.state.serverArr.push(justTheTickerArr);
     this.setState({
-      serverArr: newArr
-    })
-  }
+      serverArr: newArr,
+    });
+  };
 
-  
-  loadCardsFromButton = async(item) =>{
+  loadCardsFromButton = async (item) => {
     this.setState({
-      cardArr: []
-    })
-    item.map(async(currentTicker) => {
+      cardArr: [],
+    });
+    item.map(async (currentTicker) => {
       await this.scrapeStockAndSaveToState(currentTicker);
-    })
-  }
-  
+    });
+  };
+
   render() {
     return (
       <main style={pageStyles}>
         <Container>
-        <Row>
-          <Col sm={10}> <Jumbotron>
-            <h1>Stock Data</h1>
-            <p>Search for stock data</p>
-          </Jumbotron>
-          <form onSubmit={this.handleFormSubmit}>
+          <Row>
+            <Col sm={10}>
+              {" "}
+              <Jumbotron>
+                <h1>Stock Data</h1>
+                <p>Search for stock data</p>
+              </Jumbotron>
+              <form onSubmit={this.handleFormSubmit}>
                 <label>
                   Input Ticker
                   <input
@@ -133,25 +134,21 @@ class IndexPage extends React.Component {
                     onChange={this.handleOnChange}
                   ></input>
                 </label>
-   
+
                 <Button variant="primary" type="submit">
                   Search
                 </Button>
-                <Button className = "m-1" onClick = {this.saveCurrentCardArr}>
+                <Button className="m-1" onClick={this.saveCurrentCardArr}>
                   Save
                 </Button>
-
               </form>
-          </Col>
-    
+            </Col>
 
-          <Col sm={2}>
-          {this.renderButtons()}
-          </Col>
-        </Row>
+            <Col sm={2}>{this.renderButtons()}</Col>
+          </Row>
           <br />
 
-          {this.state.cardArr.length > 0 && this.renderTickerCards()}
+          {this.props.cardArray.length > 0 && this.renderTickerCards()}
         </Container>
         <br />
         <br />
@@ -161,4 +158,4 @@ class IndexPage extends React.Component {
   }
 }
 
-export default IndexPage;
+export default connect(mapStateToProps, mapDispatchToProps)(IndexPage);

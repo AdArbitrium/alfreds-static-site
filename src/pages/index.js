@@ -5,8 +5,7 @@ import { loadArr, saveArr } from "../client/s3Database";
 import "bootstrap/dist/css/bootstrap.min.css";
 import StockCard from "../components/StockCard";
 import { connect } from "react-redux";
-
-import { updateCurrentCard, concatCardToCardArray} from "../state/actionCreators";
+import { updateCurrentCard, concatCardToCardArray, updateSearchTicker, updateCardArrayFromServer, concatCardArrayFromServer} from "../state/actionCreators";
 
 // styles
 const pageStyles = {
@@ -16,17 +15,22 @@ const pageStyles = {
 };
 
 const mapStateToProps = (state) => {
-  const {currentCard, cardArray } = state;
+  const {currentCard, cardArray, searchTicker, cardArrayFromServer,} = state;
   return {
     currentCard,
     cardArray,
+    searchTicker,
+    cardArrayFromServer,
   };
 };
 
 const mapDispatchToProps = (dispatch) => {
   return {
     updateCurrentCard: (val) => dispatch(updateCurrentCard(val)),
-    concatCardToCardArray: (val) => dispatch(concatCardToCardArray(val))
+    concatCardToCardArray: (val) => dispatch(concatCardToCardArray(val)),
+    updateSearchTicker: (val) => dispatch(updateSearchTicker(val)),
+    updateCardArrayFromServer: (val) => dispatch(updateCardArrayFromServer(val)),
+    concatCardArrayFromServer: (val) => dispatch(concatCardArrayFromServer(val)),
   };
 };
 
@@ -44,9 +48,11 @@ class IndexPage extends React.Component {
   }
 
   handleOnChange = (event) => {
+    var ele = event.target;
     this.setState({
-      [event.target.name]: event.target.value,
+      [ele.name]: ele.value,
     });
+    this.props.updateSearchTicker(String(ele.value))
   };
 
   handleFormSubmit = async (event) => {
@@ -55,8 +61,7 @@ class IndexPage extends React.Component {
   };
 
   scrapeStockAndSaveToState = async (ticker) => {
-    let targetTicker = ticker || this.state.stockName;
-
+    let targetTicker = ticker || this.props.searchTicker;
     await scrapeStock(targetTicker).then((result) => {
       this.props.updateCurrentCard(result);
       this.props.concatCardToCardArray(this.props.currentCard);

@@ -22,6 +22,20 @@ const reducer = (state, action) => {
         ...state,
         cardArray: state.cardArray.concat(action.payload)
       }
+    case actions.updateSearchTicker:
+      return{
+        ...state,
+        searchTicker: action.payload
+      }
+    case actions.updateCardArrayFromServer:
+      return{
+        ...state,
+        updateCardArrayFromServer: action.payload
+      }
+    case actions.concatCardArrayFromServer:
+      return{
+        concatCardArrayFromServer: state.cardArrayFromServer.concat(action.payload)
+      }      
   }
 
   return state
@@ -34,7 +48,11 @@ const initialState = {
     companyName: "",
     priceChange: "",
     priceClosing: "",},
+    searchTicker: "",
     cardArray: [],
+    cardArrayFromServer: [],
+    
+    
 
 
 }
